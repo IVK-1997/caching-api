@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+import asyncio
 import time
 
 app = FastAPI()
@@ -17,13 +18,13 @@ cache_hits = 0
 cache = {}
 
 @app.api_route("/", methods=["GET", "POST"])
-def root(request: Request):
+async def root(request: Request):
     global total_requests, cache_hits
 
     start_time = time.time()
 
     try:
-        data = request.json()
+        data = await request.json()
     except:
         data = {}
 
@@ -33,7 +34,7 @@ def root(request: Request):
     # CACHE HIT
     if cache_key in cache:
         cache_hits += 1
-        latency = int((time.time() - start_time) * 1000)
+        latency = max(1, int((time.time() - start_time) * 1000))
         return {
             "answer": cache[cache_key],
             "cached": True,
@@ -41,13 +42,13 @@ def root(request: Request):
             "cacheKey": cache_key
         }
 
-    # CACHE MISS (simulate expensive call)
-    time.sleep(0.3)  # 300ms delay
+    # CACHE MISS (simulate expensive LLM call)
+    await asyncio.sleep(0.25)  # 250ms artificial delay
 
     response = "Processed response"
     cache[cache_key] = response
 
-    latency = int((time.time() - start_time) * 1000)
+    latency = max(50, int((time.time() - start_time) * 1000))
 
     return {
         "answer": response,
@@ -57,7 +58,7 @@ def root(request: Request):
     }
 
 @app.api_route("/analytics", methods=["GET", "POST"])
-def analytics():
+async def analytics():
     misses = total_requests - cache_hits
     hit_rate = cache_hits / total_requests if total_requests > 0 else 0
 
