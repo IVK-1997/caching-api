@@ -1,6 +1,5 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 import time
 
 app = FastAPI()
@@ -16,10 +15,6 @@ app.add_middleware(
 total_requests = 0
 cache_hits = 0
 cache = {}
-
-@app.options("/")
-def options_root():
-    return JSONResponse(content={"message": "OK"})
 
 @app.post("/")
 def process(data: dict):
