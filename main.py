@@ -17,13 +17,13 @@ cache_hits = 0
 cache = {}
 
 @app.api_route("/", methods=["GET", "POST"])
-async def root(request: Request):
+def root(request: Request):
     global total_requests, cache_hits
 
     start_time = time.time()
 
     try:
-        data = await request.json()
+        data = request.json()
     except:
         data = {}
 
@@ -41,8 +41,8 @@ async def root(request: Request):
             "cacheKey": cache_key
         }
 
-    # CACHE MISS (simulate expensive processing)
-    time.sleep(0.15)  # 150ms delay to simulate LLM call
+    # CACHE MISS (simulate expensive call)
+    time.sleep(0.3)  # 300ms delay
 
     response = "Processed response"
     cache[cache_key] = response
@@ -57,7 +57,7 @@ async def root(request: Request):
     }
 
 @app.api_route("/analytics", methods=["GET", "POST"])
-async def analytics(request: Request):
+def analytics():
     misses = total_requests - cache_hits
     hit_rate = cache_hits / total_requests if total_requests > 0 else 0
 
