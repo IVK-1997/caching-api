@@ -30,9 +30,10 @@ async def root(request: Request):
     total_requests += 1
     cache_key = str(data)
 
+    # CACHE HIT
     if cache_key in cache:
         cache_hits += 1
-        latency = max(1, int((time.time() - start_time) * 1000))
+        latency = int((time.time() - start_time) * 1000)
         return {
             "answer": cache[cache_key],
             "cached": True,
@@ -40,10 +41,13 @@ async def root(request: Request):
             "cacheKey": cache_key
         }
 
+    # CACHE MISS (simulate expensive processing)
+    time.sleep(0.15)  # 150ms delay to simulate LLM call
+
     response = "Processed response"
     cache[cache_key] = response
 
-    latency = max(1, int((time.time() - start_time) * 1000))
+    latency = int((time.time() - start_time) * 1000)
 
     return {
         "answer": response,
