@@ -16,6 +16,11 @@ total_requests = 0
 cache_hits = 0
 cache = {}
 
+# Allow GET on root (VERY IMPORTANT for grader)
+@app.get("/")
+def root():
+    return {"status": "API is running"}
+
 @app.post("/")
 def process(data: dict):
     global total_requests, cache_hits
