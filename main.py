@@ -16,7 +16,7 @@ total_requests = 0
 cache_hits = 0
 cache = {}
 
-@app.api_route("/", methods=["GET", "POST", "OPTIONS"])
+@app.api_route("/", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def root(request: Request):
     global total_requests, cache_hits
 
@@ -26,7 +26,11 @@ async def root(request: Request):
     if request.method == "OPTIONS":
         return {"status": "OK"}
 
-    data = await request.json()
+    try:
+        data = await request.json()
+    except:
+        data = {}
+
     start_time = time.time()
     total_requests += 1
 
@@ -54,7 +58,7 @@ async def root(request: Request):
         "cacheKey": cache_key
     }
 
-@app.api_route("/analytics", methods=["GET", "POST", "OPTIONS"])
+@app.api_route("/analytics", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def analytics(request: Request):
     if request.method == "OPTIONS":
         return {"status": "OK"}
