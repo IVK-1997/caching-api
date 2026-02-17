@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import time
 
@@ -16,13 +16,17 @@ total_requests = 0
 cache_hits = 0
 cache = {}
 
-@app.api_route("/", methods=["GET", "POST"])
-def root(data: dict = None):
+@app.api_route("/", methods=["GET", "POST", "OPTIONS"])
+async def root(request: Request):
     global total_requests, cache_hits
 
-    if data is None:
+    if request.method == "GET":
         return {"status": "API is running"}
 
+    if request.method == "OPTIONS":
+        return {"status": "OK"}
+
+    data = await request.json()
     start_time = time.time()
     total_requests += 1
 
@@ -50,8 +54,11 @@ def root(data: dict = None):
         "cacheKey": cache_key
     }
 
-@app.api_route("/analytics", methods=["GET", "POST"])
-def analytics():
+@app.api_route("/analytics", methods=["GET", "POST", "OPTIONS"])
+async def analytics(request: Request):
+    if request.method == "OPTIONS":
+        return {"status": "OK"}
+
     misses = total_requests - cache_hits
     hit_rate = cache_hits / total_requests if total_requests > 0 else 0
 
