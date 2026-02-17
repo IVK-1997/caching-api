@@ -4,7 +4,6 @@ import time
 
 app = FastAPI()
 
-# Enable CORS (required for grader)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,9 +20,6 @@ cache = {}
 async def root(request: Request):
     global total_requests, cache_hits
 
-    if request.method == "GET":
-        return {"status": "API is running"}
-
     start_time = time.time()
 
     try:
@@ -34,7 +30,6 @@ async def root(request: Request):
     total_requests += 1
     cache_key = str(data)
 
-    # Cache hit
     if cache_key in cache:
         cache_hits += 1
         latency = max(1, int((time.time() - start_time) * 1000))
@@ -45,7 +40,6 @@ async def root(request: Request):
             "cacheKey": cache_key
         }
 
-    # Cache miss
     response = "Processed response"
     cache[cache_key] = response
 
