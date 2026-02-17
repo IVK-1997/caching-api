@@ -1,7 +1,17 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import time
 
 app = FastAPI()
+
+# Enable CORS (Required for online grader)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 total_requests = 0
 cache_hits = 0
@@ -10,30 +20,34 @@ cache = {}
 @app.post("/")
 def process(data: dict):
     global total_requests, cache_hits
-    start = time.time()
+
+    start_time = time.time()
     total_requests += 1
 
-    key = str(data)
+    cache_key = str(data)
 
-    if key in cache:
+    # Check cache
+    if cache_key in cache:
         cache_hits += 1
-        latency = int((time.time() - start) * 1000)
+        latency = int((time.time() - start_time) * 1000)
         return {
-            "answer": cache[key],
+            "answer": cache[cache_key],
             "cached": True,
             "latency": latency,
-            "cacheKey": key
+            "cacheKey": cache_key
         }
 
+    # Simulated processing
     response = "Processed response"
-    cache[key] = response
+    cache[cache_key] = response
 
-    latency = int((time.time() - start) * 1000)
+    latency = int((time.time() - start_time) * 1000)
+
     return {
         "answer": response,
         "cached": False,
         "latency": latency,
-        "cacheKey": key
+        "cacheKey": cache_key
     }
 
 @app.get("/analytics")
