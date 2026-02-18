@@ -58,7 +58,7 @@ async def process(request: Request):
     analytics["cacheMisses"] += 1
 
     # Simulate expensive computation (LLM/API call)
-    time.sleep(0.15)  # 150ms delay
+    time.sleep(0.15)
 
     result = {
         "answer": "Processed response",
@@ -68,7 +68,6 @@ async def process(request: Request):
     latency = max(int((time.time() - start_time) * 1000), 1)
     result["latency"] = latency
 
-    # Store in cache
     cache[cache_key] = result.copy()
 
     return result
@@ -95,5 +94,12 @@ def get_analytics():
         "cacheHits": hits,
         "cacheMisses": misses,
         "hitRate": round(hit_rate, 4),
-        "costSavings": round(cost_savings_percent, 4)
+        "costSavings": round(cost_savings_percent, 4),
+        "strategies": [
+            "In-memory caching",
+            "Deterministic SHA256 cache key generation",
+            "Latency reduction via cache hits",
+            "Cost savings through avoided recomputation",
+            "Cache hit/miss analytics tracking"
+        ]
     }
