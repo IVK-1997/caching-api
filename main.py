@@ -20,14 +20,14 @@ analytics = {
     "cacheMisses": 0
 }
 
+COST_PER_REQUEST = 0.01  # Simulated LLM cost per uncached request
+
 @app.options("/")
 def options_root():
     return {"status": "ok"}
 
 @app.post("/")
 async def process(request: Request):
-    global analytics
-
     analytics["totalRequests"] += 1
 
     body = await request.json()
@@ -49,7 +49,7 @@ async def process(request: Request):
     analytics["cacheMisses"] += 1
 
     # Simulate expensive computation
-    time.sleep(0.15)  # 150ms delay
+    time.sleep(0.15)
 
     result = {
         "answer": "Processed response",
@@ -67,12 +67,15 @@ async def process(request: Request):
 def get_analytics():
     total = analytics["totalRequests"]
     hits = analytics["cacheHits"]
+    misses = analytics["cacheMisses"]
 
     hit_rate = hits / total if total > 0 else 0
+    cost_savings = hits * COST_PER_REQUEST
 
     return {
         "totalRequests": total,
         "cacheHits": hits,
-        "cacheMisses": analytics["cacheMisses"],
-        "hitRate": hit_rate
+        "cacheMisses": misses,
+        "hitRate": hit_rate,
+        "costSavings": round(cost_savings, 4)
     }
