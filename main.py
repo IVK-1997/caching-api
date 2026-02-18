@@ -49,7 +49,7 @@ async def process(request: Request):
     analytics["cacheMisses"] += 1
 
     # Simulate expensive computation
-    time.sleep(0.15)  # 150ms artificial delay
+    time.sleep(0.15)  # 150ms delay
 
     result = {
         "answer": "Processed response",
@@ -65,4 +65,14 @@ async def process(request: Request):
 
 @app.get("/analytics")
 def get_analytics():
-    return analytics
+    total = analytics["totalRequests"]
+    hits = analytics["cacheHits"]
+
+    hit_rate = hits / total if total > 0 else 0
+
+    return {
+        "totalRequests": total,
+        "cacheHits": hits,
+        "cacheMisses": analytics["cacheMisses"],
+        "hitRate": hit_rate
+    }
