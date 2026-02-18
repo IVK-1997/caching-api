@@ -6,6 +6,7 @@ import hashlib
 
 app = FastAPI()
 
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,55 +14,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# In-memory cache
 cache = {}
+
+# Analytics tracking
 analytics = {
     "totalRequests": 0,
     "cacheHits": 0,
     "cacheMisses": 0
 }
 
-COST_PER_REQUEST = 0.01  # Simulated LLM cost per uncached request
+BASELINE_COST_PER_REQUEST = 0.10  # Simulated baseline API cost
+
 
 @app.options("/")
 def options_root():
     return {"status": "ok"}
+
 
 @app.post("/")
 async def process(request: Request):
     analytics["totalRequests"] += 1
 
     body = await request.json()
-    cache_key = hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
+    cache_key = hashlib.sha256(
+        json.dumps(body, sort_keys=True).encode()
+    ).hexdigest()
 
-    start = time.time()
+    start_time = time.time()
 
-    # CACHE HIT
+    # ---- CACHE HIT ----
     if cache_key in cache:
         analytics["cacheHits"] += 1
-        latency = max(int((time.time() - start) * 1000), 1)
+
+        latency = max(int((time.time() - start_time) * 1000), 1)
 
         response = cache[cache_key].copy()
         response["cached"] = True
         response["latency"] = latency
         return response
 
-    # CACHE MISS
+    # ---- CACHE MISS ----
     analytics["cacheMisses"] += 1
 
-    # Simulate expensive computation
-    time.sleep(0.15)
+    # Simulate expensive computation (LLM/API call)
+    time.sleep(0.15)  # 150ms delay
 
     result = {
         "answer": "Processed response",
         "cached": False,
     }
 
-    latency = max(int((time.time() - start) * 1000), 1)
+    latency = max(int((time.time() - start_time) * 1000), 1)
     result["latency"] = latency
 
+    # Store in cache
     cache[cache_key] = result.copy()
 
     return result
+
 
 @app.get("/analytics")
 def get_analytics():
@@ -70,12 +81,19 @@ def get_analytics():
     misses = analytics["cacheMisses"]
 
     hit_rate = hits / total if total > 0 else 0
-    cost_savings = hits * COST_PER_REQUEST
+
+    baseline_cost = total * BASELINE_COST_PER_REQUEST
+    actual_cost = misses * BASELINE_COST_PER_REQUEST
+
+    cost_savings_percent = (
+        (baseline_cost - actual_cost) / baseline_cost
+        if baseline_cost > 0 else 0
+    )
 
     return {
         "totalRequests": total,
         "cacheHits": hits,
         "cacheMisses": misses,
-        "hitRate": hit_rate,
-        "costSavings": round(cost_savings, 4)
+        "hitRate": round(hit_rate, 4),
+        "costSavings": round(cost_savings_percent, 4)
     }
