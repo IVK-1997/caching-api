@@ -1,76 +1,68 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio
 import time
+import json
+import hashlib
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 cache = {}
-total_requests = 0
-cache_hits = 0
+analytics = {
+    "totalRequests": 0,
+    "cacheHits": 0,
+    "cacheMisses": 0
+}
+
+@app.options("/")
+def options_root():
+    return {"status": "ok"}
 
 @app.post("/")
-async def root(request: Request):
-    global total_requests, cache_hits
+async def process(request: Request):
+    global analytics
 
-    start_time = time.time()
+    analytics["totalRequests"] += 1
 
-    data = await request.json()  # THIS MUST BE AWAITED
-    cache_key = str(data)
+    body = await request.json()
+    cache_key = hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
 
-    total_requests += 1
+    start = time.time()
 
-    # Cache hit
+    # CACHE HIT
     if cache_key in cache:
-        cache_hits += 1
-        latency = max(1, int((time.time() - start_time) * 1000))
-        return {
-            "answer": cache[cache_key],
-            "cached": True,
-            "latency": latency,
-            "cacheKey": cache_key
-        }
+        analytics["cacheHits"] += 1
+        latency = max(int((time.time() - start) * 1000), 1)
 
-    # Cache miss (simulate expensive call)
-    await asyncio.sleep(0.3)  # 300ms delay
+        response = cache[cache_key].copy()
+        response["cached"] = True
+        response["latency"] = latency
+        return response
 
-    response = "Processed response"
-    cache[cache_key] = response
+    # CACHE MISS
+    analytics["cacheMisses"] += 1
 
-    latency = max(50, int((time.time() - start_time) * 1000))
+    # Simulate expensive computation
+    time.sleep(0.15)  # 150ms artificial delay
 
-    return {
-        "answer": response,
+    result = {
+        "answer": "Processed response",
         "cached": False,
-        "latency": latency,
-        "cacheKey": cache_key
     }
+
+    latency = max(int((time.time() - start) * 1000), 1)
+    result["latency"] = latency
+
+    cache[cache_key] = result.copy()
+
+    return result
 
 @app.get("/analytics")
-async def analytics():
-    misses = total_requests - cache_hits
-    hit_rate = cache_hits / total_requests if total_requests > 0 else 0
-
-    return {
-        "hitRate": hit_rate,
-        "totalRequests": total_requests,
-        "cacheHits": cache_hits,
-        "cacheMisses": misses,
-        "cacheSize": len(cache),
-        "costSavings": 2.0,
-        "savingsPercent": 55,
-        "strategies": [
-            "exact_match",
-            "LRU_eviction",
-            "TTL_expiration",
-            "semantic_similarity"
-        ]
-    }
+def get_analytics():
+    return analytics
